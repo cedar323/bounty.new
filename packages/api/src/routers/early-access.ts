@@ -406,7 +406,7 @@ export const earlyAccessRouter = router({
 
           // Get position before update
           const [posResult] = await db
-            .select({ count: sql<number>`count(*)` })
+            .select({ count: sql<number>`count(*)::int` })
             .from(waitlist)
             .where(sql`${waitlist.createdAt} < ${existingEntry.createdAt}`);
           position = (posResult?.count ?? 0) + 1;
@@ -431,7 +431,7 @@ export const earlyAccessRouter = router({
           // Create new entry
           // Get position (count of existing entries)
           const [countResult] = await db
-            .select({ count: sql<number>`count(*)` })
+            .select({ count: sql<number>`count(*)::int` })
             .from(waitlist);
           position = (countResult?.count ?? 0) + 1;
 
@@ -663,7 +663,7 @@ export const earlyAccessRouter = router({
         let position = entry.position;
         if (!position) {
           const entriesBefore = await db
-            .select({ count: sql<number>`count(*)` })
+            .select({ count: sql<number>`count(*)::int` })
             .from(waitlist)
             .where(sql`${waitlist.createdAt} < ${entry.createdAt}`);
           position = (entriesBefore[0]?.count ?? 0) + 1;
@@ -733,7 +733,7 @@ export const earlyAccessRouter = router({
       if (!entry && userEmail) {
         // Calculate position (count of existing entries)
         const [countRes] = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({ count: sql<number>`count(*)::int` })
           .from(waitlist);
         const position = (countRes?.count ?? 0) + 1;
 
@@ -768,7 +768,7 @@ export const earlyAccessRouter = router({
       let position = entry.position;
       if (!position) {
         const [posRes] = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({ count: sql<number>`count(*)::int` })
           .from(waitlist)
           .where(sql`${waitlist.createdAt} < ${entry.createdAt}`);
         position = (posRes?.count ?? 0) + 1;
