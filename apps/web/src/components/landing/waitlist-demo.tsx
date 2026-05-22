@@ -6,10 +6,10 @@ import NumberFlow from '@bounty/ui/components/number-flow';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { GithubIcon } from '@bounty/ui/components/icons/huge/github';
 import Image from 'next/image';
-import { useState } from 'react';
-import { useMountEffect } from '@bounty/ui';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfetti } from '@/context/confetti-context';
+import { useSession } from '@/context/session-context';
 import type { WaitlistCookieData } from '@/types/waitlist';
 import { trpc, trpcClient } from '@/utils/trpc';
 import { MockBrowser } from './mockup';
@@ -43,13 +43,28 @@ function writeStoredWaitlist(data: WaitlistCookieData) {
 }
 
 /**
+ * Clears the persisted waitlist snapshot when it does not belong to the
+ * current authenticated user anymore.
+ */
+function clearStoredWaitlist() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(WAITLIST_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+/**
  * Submits the authenticated user to the waitlist and tracks the stable queue
  * position returned by the API for the confirmation state.
  */
 function useWaitlistSubmission() {
   const { celebrate } = useConfetti();
+  const { session } = useSession();
   const [success, setSuccess] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
+  const currentUserEmail = session?.user?.email ?? '';
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => trpcClient.earlyAccess.joinWaitlist.mutate(),
@@ -65,7 +80,7 @@ function useWaitlistSubmission() {
       const cookieData: WaitlistCookieData = {
         submitted: true,
         timestamp: new Date().toISOString(),
-        email: '',
+        email: currentUserEmail,
         position: waitlistPosition,
       };
       writeStoredWaitlist(cookieData);
@@ -126,19 +141,42 @@ interface WaitlistPageProps {
  * Renders the waitlist CTA and restores any locally saved confirmation state.
  */
 function WaitlistPage({ compact = false }: WaitlistPageProps) {
+  const { isPending: isSessionPending, session } = useSession();
   const waitlistSubmission = useWaitlistSubmission();
+  const currentUserEmail = session?.user?.email ?? null;
+  const { setPosition, setSuccess } = waitlistSubmission;
 
-  useMountEffect(() => {
-    const stored = readStoredWaitlist();
-    if (stored?.submitted) {
-      waitlistSubmission.setSuccess(true);
-      waitlistSubmission.setPosition(
-        typeof stored.position === 'number' && stored.position > 0
-          ? stored.position
-          : null,
-      );
+  useEffect(() => {
+    if (isSessionPending) {
+      return;
     }
-  });
+
+    const stored = readStoredWaitlist();
+
+    if (!stored?.submitted) {
+      return;
+    }
+
+    if (!currentUserEmail) {
+      setSuccess(false);
+      setPosition(null);
+      return;
+    }
+
+    if (stored.email !== currentUserEmail) {
+      clearStoredWaitlist();
+      setSuccess(false);
+      setPosition(null);
+      return;
+    }
+
+    setSuccess(true);
+    setPosition(
+      typeof stored.position === 'number' && stored.position > 0
+        ? stored.position
+        : null,
+    );
+  }, [currentUserEmail, isSessionPending, setPosition, setSuccess]);
 
   function joinWaitlist() {
     waitlistSubmission.mutate();
