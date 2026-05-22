@@ -77,13 +77,15 @@ function useWaitlistSubmission() {
       setSuccess(true);
       setPosition(waitlistPosition);
 
-      const cookieData: WaitlistCookieData = {
-        submitted: true,
-        timestamp: new Date().toISOString(),
-        email: currentUserEmail,
-        position: waitlistPosition,
-      };
-      writeStoredWaitlist(cookieData);
+      if (currentUserEmail) {
+        const cookieData: WaitlistCookieData = {
+          submitted: true,
+          timestamp: new Date().toISOString(),
+          email: currentUserEmail,
+          position: waitlistPosition,
+        };
+        writeStoredWaitlist(cookieData);
+      }
 
       celebrate();
       toast.success("You're on the list!");
@@ -182,7 +184,7 @@ function WaitlistPage({ compact = false }: WaitlistPageProps) {
     waitlistSubmission.mutate();
   }
 
-  const isFormDisabled = waitlistSubmission.isPending;
+  const isFormDisabled = waitlistSubmission.isPending || isSessionPending;
 
   const waitlistCountQuery = useQuery({
     ...trpc.earlyAccess.getWaitlistCount.queryOptions(),
