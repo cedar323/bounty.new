@@ -16,6 +16,10 @@ import { MockBrowser } from './mockup';
 
 const WAITLIST_STORAGE_KEY = 'waitlist_data';
 
+/**
+ * Restores the persisted waitlist confirmation so the demo can keep showing
+ * the user's saved queue state across refreshes.
+ */
 function readStoredWaitlist(): WaitlistCookieData | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -26,6 +30,9 @@ function readStoredWaitlist(): WaitlistCookieData | null {
   }
 }
 
+/**
+ * Persists the latest waitlist confirmation snapshot for this browser.
+ */
 function writeStoredWaitlist(data: WaitlistCookieData) {
   if (typeof window === 'undefined') return;
   try {
@@ -35,6 +42,10 @@ function writeStoredWaitlist(data: WaitlistCookieData) {
   }
 }
 
+/**
+ * Submits the authenticated user to the waitlist and tracks the stable queue
+ * position returned by the API for the confirmation state.
+ */
 function useWaitlistSubmission() {
   const { celebrate } = useConfetti();
   const [success, setSuccess] = useState(false);
@@ -111,6 +122,9 @@ interface WaitlistPageProps {
   compact?: boolean;
 }
 
+/**
+ * Renders the waitlist CTA and restores any locally saved confirmation state.
+ */
 function WaitlistPage({ compact = false }: WaitlistPageProps) {
   const waitlistSubmission = useWaitlistSubmission();
 
@@ -355,6 +369,10 @@ interface WaitlistDemoProps {
   compact?: boolean;
 }
 
+/**
+ * Wraps the waitlist page in the landing-page browser mockup used on marketing
+ * surfaces.
+ */
 export function WaitlistDemo({ compact = false }: WaitlistDemoProps) {
   return (
     <MockBrowser
